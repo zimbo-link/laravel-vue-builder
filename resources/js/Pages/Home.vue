@@ -1,7 +1,7 @@
 <template>
   <div class="grid grid-cols-3 flex h-screen flex-col">
-    <div class="col-span-2">
-      <div @click="selectItem" ref="canvas" id="myclick">
+    <div @click="clearSelect" id="clearSelect" class="col-span-2 h-screen">
+      <div @click="selectItem" ref="canvas" id="selectItem">
         <Div :items="obj.items" @custom-event="childEvents" />
       </div>
     </div>
@@ -9,31 +9,25 @@
       <div class="container mt-4">
         <div class="row">
           <div class="col-12 d-flex justify-content-between mb-2">
-            <button
-              :disabled="selectedEnabled"
-              @click.prevent="clearSelect"
-              class="btn btn-info"
-            >
-              Clear Selected
-            </button>
+            <button @click.prevent="appendDiv" class="btn bg-blue-500">Append DIV</button>
             <button
               :disabled="selectedEnabled"
               @click.prevent="deleteSelected"
-              class="btn btn-info"
+              class="btn bg-red-500"
             >
-              Delete Selected
+              Delete DIV
             </button>
             <button
               :disabled="saveEnabled"
               @click.prevent="saveDocument"
-              class="btn btn-info"
+              class="btn bg-green-500"
             >
-              Save
+              Save Document
             </button>
           </div>
           <div class="col-12 d-flex justify-content-between mb-2">
-            <h1 class="font-bold">Element: {{ selected }}</h1>
-            <button @click.prevent="appendDiv" class="btn btn-info">DIV</button>
+            <h1 class="font-bold">Element: </h1>{{ selected }}
+            
           </div>
           
           <div class="col-12 d-flex justify-content-between mb-2">
@@ -106,7 +100,6 @@
               cols="140"
             >
             </textarea>
-              
           </div>
           <div class="col-12 d-flex justify-content-between">
             <span class="text-red-500">{{errors}}</span>
@@ -147,6 +140,14 @@ const uuidv4 = () => {
     (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16)
   );
 };
+
+watch(
+  () => obj,
+  (newObj, oldObj) => {
+      saveRef.value = JSON.stringify(obj.value) != JSON.stringify(JSON.parse(props.doc.json)) ? false : true; 
+  },
+  { deep: true }
+)
 
 const compileLess = (uuid) => {
   less.render(styles.value).then(
@@ -212,16 +213,10 @@ const postCompiler = () => {
       cls: classes.value,
     });
   }
-  checkChanges();
 }
 
 const deleteSelected = () => {
   deleteTree(obj.value.items, selected.value)
-  checkChanges();
-}
-
-const checkChanges = () => { 
-  saveRef.value = JSON.stringify(obj.value) != JSON.stringify(JSON.parse(props.doc.json)) ? false : true; 
 }
 
 const appendDiv = () => {
@@ -239,7 +234,6 @@ const appendDiv = () => {
   markup.value = styles.value = classes.value = "";
   selectedRef.value = false;
   selected.value = newUuid;
-  checkChanges();
 };
 
 const updateTree = (o, i) => {
@@ -303,7 +297,7 @@ const setModels = (o, id) => {
 
 const clearSelect = (event) => {
   selected.value = null;
-  markup.value = styles.value = "";
+  markup.value = styles.value = classes.value = "";
   selectedRef.value = true;
 };
 
@@ -312,10 +306,11 @@ const changeCompiler = () => {
 };
 
 const selectItem = (event) => {
+  event.stopPropagation();
   layers = [];
   let elements = document.elementsFromPoint(event.clientX, event.clientY);
   for( var i in elements){
-    if(elements[i].id && elements[i].id=="myclick"){
+    if( elements[i].id && ( elements[i].id == "clearSelect" || elements[i].id == "selectItem" ) ){
       break;
     }
     getParent(elements[i]);
@@ -344,8 +339,9 @@ const getParent = (e) => {
       p = e;
       if(layers.indexOf(e.id.substring(2)) == -1)
         layers.push(e.id.substring(2));  
+      break;
     }
-    e = e.parentNode;
+    e = e.parentNode; 
   }
   while (p == null)
 }
@@ -357,7 +353,6 @@ const childEvents = (e) => {
 onMounted(() => {
   obj.value = JSON.parse(props.doc.json);
   compiler.value = obj.value.compiler;
-  checkChanges();
 });
 </script>
 
